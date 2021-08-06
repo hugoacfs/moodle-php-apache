@@ -49,6 +49,7 @@ docker-php-ext-install zip
 docker-php-ext-install -j$(nproc) \
     exif \
     intl \
+    pdo_mysql \
     mysqli \
     opcache \
     pgsql \
