@@ -6,7 +6,7 @@ echo "Installing apt dependencies"
 
 # Build packages will be added during the build, but will be removed at the end.
 BUILD_PACKAGES="gettext gnupg libcurl4-openssl-dev libfreetype6-dev libicu-dev libjpeg62-turbo-dev \
-  libldap2-dev libmariadbclient-dev libmemcached-dev libpng-dev libpq-dev libxml2-dev libxslt-dev \
+  libldap2-dev libmariadb-dev libmemcached-dev libpng-dev libpq-dev libxml2-dev libxslt-dev \
   unixodbc-dev uuid-dev"
 
 # Packages for Postgres.
@@ -16,7 +16,7 @@ PACKAGES_POSTGRES="libpq5"
 PACKAGES_MYMARIA="libmariadb3"
 
 # Packages for other Moodle runtime dependenices.
-PACKAGES_RUNTIME="ghostscript libaio1 libcurl4 libgss3 libicu63 libmcrypt-dev libxml2 libxslt1.1 \
+PACKAGES_RUNTIME="ghostscript libaio1 libcurl4 libgss3 libicu67 libmcrypt-dev libxml2 libxslt1.1 \
   libzip-dev locales sassc unixodbc unzip zip"
 
 # Packages for Memcached.
@@ -61,19 +61,28 @@ docker-php-ext-configure gd --with-freetype=/usr/include/ --with-jpeg=/usr/inclu
 docker-php-ext-install -j$(nproc) gd
 
 # LDAP.
-docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu/
+docker-php-ext-configure ldap
 docker-php-ext-install -j$(nproc) ldap
 
 # APCu, igbinary, Memcached, MongoDB, Redis, Solr, uuid, XMLRPC (beta)
-pecl install apcu igbinary memcached mongodb redis solr uuid xmlrpc-beta
-docker-php-ext-enable apcu igbinary memcached mongodb redis solr uuid xmlrpc
+pecl install apcu igbinary memcached mongodb pcov redis solr uuid xmlrpc-beta
+docker-php-ext-enable apcu igbinary memcached mongodb pcov redis solr uuid xmlrpc
 
 echo 'apc.enable_cli = On' >> /usr/local/etc/php/conf.d/docker-php-ext-apcu.ini
+
+echo "pcov.enabled=0" >> /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini
+echo "pcov.exclude='~\/(tests|coverage|vendor|node_modules)\/~'" >> /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini
+echo "pcov.directory=." >> /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini
+echo "pcov.initial.files=1024" >> /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini
 
 # Install Microsoft dependencies for sqlsrv.
 # (kept apart for clarity, still need to be run here
 # before some build packages are deleted)
-/tmp/setup/sqlsrv-extension.sh
+if [[ ${TARGETPLATFORM} == "linux/amd64" ]]; then
+    /tmp/setup/sqlsrv-extension.sh
+else
+    echo "sqlsrv extension not available for ${TARGETPLATFORM} architecture, skipping"
+fi
 
 # Keep our image size down..
 pecl clear-cache

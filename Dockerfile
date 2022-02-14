@@ -1,4 +1,9 @@
-FROM php:8.0-apache-buster
+FROM php:8.1-apache-bullseye
+
+# So we can use it anywhere for conditional stuff. Keeping BC with old (non-buildkit, builders).
+ARG TARGETPLATFORM
+ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
+RUN echo "Building for ${TARGETPLATFORM}"
 
 ADD root/ /
 # Fix the original permissions of /tmp, the PHP default upload tmp dir.
